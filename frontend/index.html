@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Task Manager Devops</title>
+</head>
+<body>
+    <h1>My Task Manager</h1>
+    <input type="text" id="taskTitle" placeholder="Enter task title">
+    <button onclick="addNewTask()">Add Task</button>
+    <ul id="list"></ul>
+
+    <script src="taskManager.js"></script>
+    <script>
+        function addNewTask() {
+            const input = document.getElementById('taskTitle');
+            try {
+                window.taskManager.createTask(input.value);
+                input.value = '';
+                render();
+            } catch (e) {
+                alert(e.message);
+            }
+        }
+
+        function render() {
+            const list = document.getElementById('list');
+            list.innerHTML = window.taskManager.getTasks()
+                .map(t => `<li>${t.title}</li>`).join('');
+        }
+    </script>
+</body>
+</html>

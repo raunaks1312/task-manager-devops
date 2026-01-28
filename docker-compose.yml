@@ -1,0 +1,25 @@
+version: '3.8'
+services:
+  app:
+    build: ./frontend
+    ports:
+      - "8080:80"
+
+  sonarqube:
+    image: sonarqube:community
+    ports:
+      - "9000:9000"
+
+  # Tool 5: Prometheus
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  # Tool 4: Grafana
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
