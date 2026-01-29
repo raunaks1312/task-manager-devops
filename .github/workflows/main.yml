@@ -5,8 +5,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  # STAGE 1: Logic & Testing
-  # Tools: Node.js, Jest
+  # STAGE 1: Logic & Testing (Node.js, Jest)
   unit-testing:
     runs-on: ubuntu-latest
     steps:
@@ -24,8 +23,7 @@ jobs:
           npm install
           npm test
 
-  # STAGE 2: Security & Quality
-  # Tools: SonarQube (Static Analysis)
+  # STAGE 2: Security & Quality (SonarCloud)
   security-gate:
     needs: unit-testing
     runs-on: ubuntu-latest
@@ -35,15 +33,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Note: This is designed for SonarCloud/Cloud-accessible SonarQube
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_HOST_URL: https://sonarcloud.io # Updated to Cloud URL
 
-  # STAGE 3: Infrastructure & Automation
-  # Tools: Docker, Docker Compose, Nginx
+  # STAGE 3: Infrastructure (Docker & Nginx)
   containerization:
     needs: security-gate
     runs-on: ubuntu-latest
@@ -57,8 +53,28 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and Push Nginx-App Image
+      - name: Build and Push Nginx Frontend
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/task-manager-devops:latest ./frontend
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/task-manager-devops:latest
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/task-manager-frontend:latest ./frontend
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/task-manager-frontend:latest
+
+  # STAGE 4: Observability Validation (Prometheus & Grafana)
+  observability-check:
+    needs: containerization
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Validate Prometheus Config
+        # This ensures your prometheus.yml has no syntax errors
+        run: |
+          docker run --rm -v $(pwd)/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml \
+          prom/prometheus:latest promtool check config /etc/prometheus/prometheus.yml
+
+      - name: Build Observability Images
+        # Pushing your custom monitoring configs to the repo
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/task-manager-prometheus:latest ./prometheus
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/task-manager-prometheus:latest
 
