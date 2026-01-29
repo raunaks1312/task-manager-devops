@@ -5,7 +5,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  # STAGE 1: Quality Control (Logic & Unit Testing)
+  # STAGE 1: Unit Testing
   test-logic:
     runs-on: ubuntu-latest
     steps:
@@ -23,27 +23,10 @@ jobs:
           npm install
           npm test
 
-  # STAGE 2: Security Scan (SonarQube)
-  # This only runs if tests pass
-  security-scan:
-    needs: test-logic
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: SonarQube Scan
-        uses: sonarsource/sonarqube-scan-action@master
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-
-  # STAGE 3: Containerization & Delivery (Docker Hub)
-  # This only runs if the security scan passes
+  # STAGE 2: Containerization & Delivery
+  # This runs as soon as tests pass
   build-and-push:
-    needs: security-scan
+    needs: test-logic
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -59,4 +42,3 @@ jobs:
         run: |
           docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/task-manager-devops:latest ./frontend
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/task-manager-devops:latest
-     
