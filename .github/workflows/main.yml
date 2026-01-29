@@ -5,30 +5,58 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build-test-push:
+  # STAGE 1: Quality Control (Logic & Unit Testing)
+  test-logic:
     runs-on: ubuntu-latest
-
     steps:
-      - name: 1. Checkout Code
+      - name: Checkout Code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: 2. Setup Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20'
 
-      - name: 3. Install & Run Unit Tests (Jest)
+      - name: Install & Run Unit Tests (Jest)
         run: |
           cd frontend
           npm install
           npm test
 
-      - name: 4. Login to Docker Hub
+  # STAGE 2: Security Scan (SonarQube)
+  # This only runs if tests pass
+  security-scan:
+    needs: test-logic
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+  # STAGE 3: Containerization & Delivery (Docker Hub)
+  # This only runs if the security scan passes
+  build-and-push:
+    needs: security-scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/task-manager-devops:latest ./frontend
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/task-manager-devops:latest
      
