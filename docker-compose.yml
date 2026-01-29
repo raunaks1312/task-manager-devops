@@ -1,16 +1,19 @@
 version: '3.8'
+
 services:
+  # Tool 1: Frontend App (Nginx)
   app:
     build: ./frontend
     ports:
       - "8080:80"
 
+  # Tool 2: Security & Quality (SonarQube)
   sonarqube:
     image: sonarqube:community
     ports:
       - "9000:9000"
 
-  # Tool 5: Prometheus
+  # Tool 3: The Robot (Prometheus)
   prometheus:
     image: prom/prometheus
     volumes:
@@ -18,8 +21,16 @@ services:
     ports:
       - "9090:9090"
 
-  # Tool 4: Grafana
+  # Tool 4: The TV Screen (Grafana)
   grafana:
     image: grafana/grafana
     ports:
       - "3000:3000"
+
+  # Tool 5: System Sensor (Node Exporter)
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"

@@ -10,24 +10,41 @@
     <button onclick="addNewTask()">Add Task</button>
     <ul id="list"></ul>
 
-    <script src="taskManager.js"></script>
-    <script>
-        function addNewTask() {
-            const input = document.getElementById('taskTitle');
-            try {
-                window.taskManager.createTask(input.value);
-                input.value = '';
-                render();
-            } catch (e) {
-                alert(e.message);
-            }
-        }
+   <script src="taskManager.js"></script>
+<script>
+    function addNewTask() {
+        const input = document.getElementById('taskTitle');
+        try {
+            window.taskManager.createTask(input.value);
+            input.value = '';
+            render();
+        } catch (e) { alert(e.message); }
+    }
 
-        function render() {
-            const list = document.getElementById('list');
-            list.innerHTML = window.taskManager.getTasks()
-                .map(t => `<li>${t.title}</li>`).join('');
+    function deleteTask(id) {
+        window.taskManager.deleteTask(id);
+        render();
+    }
+
+    function editTask(id, currentTitle) {
+        const newTitle = prompt("Update task title:", currentTitle);
+        if (newTitle) {
+            window.taskManager.updateTask(id, newTitle);
+            render();
         }
-    </script>
+    }
+
+    function render() {
+        const list = document.getElementById('list');
+        list.innerHTML = window.taskManager.getTasks()
+            .map(t => `
+                <li>
+                    ${t.title} 
+                    <button onclick="editTask(${t.id}, '${t.title}')">Edit</button>
+                    <button onclick="deleteTask(${t.id})">Delete</button>
+                </li>
+            `).join('');
+    }
+</script>
 </body>
 </html>

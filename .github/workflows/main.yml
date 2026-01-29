@@ -1,20 +1,45 @@
 name: CI Pipeline
 
-on: [push]
+on:
+  push:
+    branches: [ "main" ]
 
 jobs:
-  test:
+  build-test-push:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Node.js
+      - name: 1. Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 2. Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20'
 
-      - name: Install & Test
+      - name: 3. Install & Run Unit Tests (Jest)
         run: |
           cd frontend
           npm install
           npm test
+
+      - name: 4. DevSecOps: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      - name: 5. Login to Docker Hub
+        # This uses GitHub Secrets for security
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 6. Containerization: Build & Push
+        run: |
+          # Replace 'your-username' with your actual Docker Hub username
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/task-manager-devops:latest ./frontend
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/task-manager-devops:latest
