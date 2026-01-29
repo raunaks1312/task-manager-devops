@@ -1,12 +1,13 @@
-name: CI Pipeline
+name: Task Manager DevSecOps Pipeline
 
 on:
   push:
     branches: [ "main" ]
 
 jobs:
-  # STAGE 1: Unit Testing + SonarQube Scan
-  test-logic:
+  # STAGE 1: Logic & Testing
+  # Tools: Node.js, Jest
+  unit-testing:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -17,29 +18,34 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install & Run Unit Tests (Jest)
+      - name: Install Dependencies & Run Jest
         run: |
           cd frontend
           npm install
           npm test
 
-      # SonarQube Scan
+  # STAGE 2: Security & Quality
+  # Tools: SonarQube (Static Analysis)
+  security-gate:
+    needs: unit-testing
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Note: This is designed for SonarCloud/Cloud-accessible SonarQube
       - name: SonarQube Scan
-        uses: sonarsource/sonarqube-scan-action@v2
+        uses: sonarsource/sonarqube-scan-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        with:
-          projectBaseDir: frontend
-          args: >
-            -Dsonar.projectKey=task-manager-devops
-            -Dsonar.projectName=task-manager-devops
-            -Dsonar.sources=.
-            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
 
-  # STAGE 2: Containerization & Delivery
-  build-and-push:
-    needs: test-logic
+  # STAGE 3: Infrastructure & Automation
+  # Tools: Docker, Docker Compose, Nginx
+  containerization:
+    needs: security-gate
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -51,7 +57,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and Push Docker Image
+      - name: Build and Push Nginx-App Image
         run: |
           docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/task-manager-devops:latest ./frontend
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/task-manager-devops:latest
