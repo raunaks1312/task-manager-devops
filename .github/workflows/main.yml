@@ -5,7 +5,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  # STAGE 1: Unit Testing
+  # STAGE 1: Unit Testing + SonarQube Scan
   test-logic:
     runs-on: ubuntu-latest
     steps:
@@ -23,8 +23,21 @@ jobs:
           npm install
           npm test
 
+      # SonarQube Scan
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@v2
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          projectBaseDir: frontend
+          args: >
+            -Dsonar.projectKey=task-manager-devops
+            -Dsonar.projectName=task-manager-devops
+            -Dsonar.sources=.
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+
   # STAGE 2: Containerization & Delivery
-  # This runs as soon as tests pass
   build-and-push:
     needs: test-logic
     runs-on: ubuntu-latest
@@ -42,3 +55,4 @@ jobs:
         run: |
           docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/task-manager-devops:latest ./frontend
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/task-manager-devops:latest
+
