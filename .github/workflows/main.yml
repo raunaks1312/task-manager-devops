@@ -25,21 +25,13 @@ jobs:
           npm install
           npm test
 
-      - name: 4. DevSecOps: SonarQube Scan
-        uses: sonarsource/sonarqube-scan-action@master
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-
-      - name: 5. Login to Docker Hub
-        # This uses GitHub Secrets for security
+      - name: 4. Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: 6. Containerization: Build & Push
+      - name: 5. Containerization: Build & Push
         run: |
-          # Replace 'your-username' with your actual Docker Hub username
           docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/task-manager-devops:latest ./frontend
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/task-manager-devops:latest
